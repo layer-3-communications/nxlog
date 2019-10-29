@@ -1,0 +1,39 @@
+cabal-version: 2.2
+name:
+  nxlog
+version:
+  0.1
+synopsis:
+  NxLog type and parser
+description:
+  NxLog type and parser as per https://nxlog.co/documentation/nxlog-user-guide/im_msvistalog.html#im_msvistalog_fields
+bug-reports:
+  https://github.com/layer-3-communications/nxlog
+license:
+  BSD-3-Clause
+license-file:
+  LICENSE
+author:
+  Daniel Cartwright <dcartwright@layer3com.com>
+maintainer:
+  Daniel Cartwright <dcartwright@layer3com.com>
+copyright:
+  copyright (C) 2019 Layer 3 Communications, LLC.
+category:
+  Network, Parsing
+build-type:
+  Simple
+extra-source-files:
+  CHANGELOG.md
+
+library nxlog
+  hs-source-dirs:
+    src
+  exposed-modules:
+    NxLog
+  build-depends:
+    , aeson >= 1.4 && < 1.5
+    , base >= 4.10 && < 4.14
+    , chronos >= 1.0 && < 1.1
+  default-language:
+    Haskell2010
