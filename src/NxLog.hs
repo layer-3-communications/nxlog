@@ -10,18 +10,28 @@
 
 -- | NxLog type and parser as per https://nxlog.co/documentation/nxlog-user-guide/im_msvistalog.html#im_msvistalog_fields
 module NxLog
-  ( NxLog(..)
+  ( -- * NxLog type
+    NxLog(..)
   , eventTimeFormat
+
+    -- * Parsing the XML inside of the NxLog
+  , Xeno.XenoException(..)
+  , parseXml
   ) where
 
 import Chronos (Datetime, DatetimeFormat(..))
 import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Types
+import Data.HashMap.Strict (HashMap)
 import Data.Text
 import GHC.Generics
 import Prelude hiding (maybe)
 import qualified Chronos
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Text.Encoding as TE
+import qualified Xeno.DOM as Xeno
+import qualified Xeno.Types as Xeno
 
 -- | https://nxlog.co/documentation/nxlog-user-guide/im_msvistalog.html#im_msvistalog_fields
 data NxLog = NxLog
@@ -91,3 +101,21 @@ instance FromJSON NxLog where
 maybe :: FromJSON a => Object -> Text -> Parser (Maybe a)
 maybe o n = o .: n <|> pure Nothing
 {-# inlineable maybe #-}
+
+nodeToNameValue :: Xeno.Node -> HashMap Text Text
+nodeToNameValue n = case (Xeno.attributes n, Xeno.contents n) of
+  ([("Name",name)],[Xeno.Text value]) -> if value == "-"
+    then mempty
+    else HM.singleton (TE.decodeUtf8 name) (TE.decodeUtf8 value)
+  _ -> mempty
+
+parseXml :: NxLog -> Either Xeno.XenoException (HashMap Text Text)
+parseXml NxLog{..} = case _EventXml of
+  Nothing -> Right mempty
+  Just xml -> case Xeno.parse (TE.encodeUtf8 xml) of
+    Left err -> Left err
+    Right node ->
+      let contents = Xeno.contents node
+      in Right $ flip foldMap contents $ \c -> case c of
+           Xeno.Element n -> nodeToNameValue n
+           _ -> mempty
