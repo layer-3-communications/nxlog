@@ -14,9 +14,8 @@ module NxLog
     NxLog(..)
   , eventTimeFormat
 
-    -- * Parsing the XML inside of the NxLog
+    -- * Re-exports
   , Xeno.XenoException(..)
-  , parseXml
   ) where
 
 import Chronos (Datetime, DatetimeFormat(..))
@@ -44,7 +43,7 @@ data NxLog = NxLog
   , _EventId :: Int
   , _EventTime :: Maybe Datetime
   , _EventType :: Maybe Text
-  , _EventXml :: Maybe Text
+  , _EventXml :: Either Xeno.XenoException (HashMap Text Text)
   , _ExecutionProcessId :: Maybe Int
   , _Hostname :: Maybe Text
   , _Keywords :: Maybe Text
@@ -61,7 +60,7 @@ data NxLog = NxLog
   , _UserId :: Maybe Text
   , _Version :: Maybe Int
   }
-  deriving stock (Eq, Show, Read, Generic)
+  deriving stock (Show, Generic)
 
 -- | The format taken by the 'EventTime' field.
 eventTimeFormat :: DatetimeFormat
@@ -77,10 +76,10 @@ instance FromJSON NxLog where
     _Domain <- maybe m "Domain"
     _EventId <- m .: "EventID"
     _EventTime <- do
-      etime <- m .: "EventTime"
-      pure $ Chronos.decode_YmdHMS eventTimeFormat etime
+      etime <- maybe m "EventTime"
+      pure $ Chronos.decode_YmdHMS eventTimeFormat =<< etime
     _EventType <- maybe m "EventType"
-    _EventXml <- maybe m "EventXML"
+    _EventXml <- eventXml m
     _ExecutionProcessId <- maybe m "ExecutionProcessID"
     _Hostname <- maybe m "Hostname"
     _Keywords <- maybe m "Keywords"
@@ -102,20 +101,22 @@ maybe :: FromJSON a => Object -> Text -> Parser (Maybe a)
 maybe o n = o .: n <|> pure Nothing
 {-# inlineable maybe #-}
 
+eventXml :: Object -> Parser (Either Xeno.XenoException (HashMap Text Text))
+eventXml o = do
+  mxml <- maybe o "EventXML"
+  case mxml of
+    Nothing -> pure (Right mempty)
+    Just xml -> pure $ case Xeno.parse (TE.encodeUtf8 xml) of
+      Left err -> Left err
+      Right node ->
+        let contents = Xeno.contents node
+        in Right $ flip foldMap contents $ \c -> case c of
+             Xeno.Element n -> nodeToNameValue n
+             _ -> mempty
+
 nodeToNameValue :: Xeno.Node -> HashMap Text Text
 nodeToNameValue n = case (Xeno.attributes n, Xeno.contents n) of
   ([("Name",name)],[Xeno.Text value]) -> if value == "-"
     then mempty
     else HM.singleton (TE.decodeUtf8 name) (TE.decodeUtf8 value)
   _ -> mempty
-
-parseXml :: NxLog -> Either Xeno.XenoException (HashMap Text Text)
-parseXml NxLog{..} = case _EventXml of
-  Nothing -> Right mempty
-  Just xml -> case Xeno.parse (TE.encodeUtf8 xml) of
-    Left err -> Left err
-    Right node ->
-      let contents = Xeno.contents node
-      in Right $ flip foldMap contents $ \c -> case c of
-           Xeno.Element n -> nodeToNameValue n
-           _ -> mempty
