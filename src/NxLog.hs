@@ -16,6 +16,9 @@ module NxLog
 
     -- * Re-exports
   , Xeno.XenoException(..)
+
+    -- * Testing
+  , testXmlParser
   ) where
 
 import Chronos (Datetime, DatetimeFormat(..))
@@ -108,11 +111,14 @@ eventXml o = do
     Nothing -> pure (Right mempty)
     Just xml -> pure $ case Xeno.parse (TE.encodeUtf8 xml) of
       Left err -> Left err
-      Right node ->
-        let contents = Xeno.contents node
-        in Right $ flip foldMap contents $ \c -> case c of
-             Xeno.Element n -> nodeToNameValue n
-             _ -> mempty
+      Right node -> Right $ nodeToEventXml node
+
+nodeToEventXml :: Xeno.Node -> HashMap Text Text
+nodeToEventXml node =
+  let contents = Xeno.contents node
+  in flip foldMap contents $ \c -> case c of
+       Xeno.Element n -> nodeToNameValue n
+       _ -> mempty
 
 nodeToNameValue :: Xeno.Node -> HashMap Text Text
 nodeToNameValue n = case (Xeno.attributes n, Xeno.contents n) of
@@ -120,3 +126,9 @@ nodeToNameValue n = case (Xeno.attributes n, Xeno.contents n) of
     then mempty
     else HM.singleton (TE.decodeUtf8 name) (TE.decodeUtf8 value)
   _ -> mempty
+
+testXmlParser :: Text -> HashMap Text Text
+testXmlParser b = case Xeno.parse (TE.encodeUtf8 b) of
+  Left err -> error "bad xml lol"
+  Right node -> nodeToEventXml node
+
