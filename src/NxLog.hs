@@ -8,6 +8,8 @@
   , StrictData
   #-}
 
+{-# language TypeApplications #-}
+
 -- | NxLog type and parser as per https://nxlog.co/documentation/nxlog-user-guide/im_msvistalog.html#im_msvistalog_fields
 module NxLog
   ( -- * NxLog type
@@ -19,6 +21,7 @@ module NxLog
 
     -- * Testing
   , testXmlParser
+  , test
   ) where
 
 import Chronos (Datetime, DatetimeFormat(..))
@@ -32,6 +35,7 @@ import Prelude hiding (maybe)
 import qualified Chronos
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.IO as TIO
 import qualified Xeno.DOM as Xeno
 import qualified Xeno.Types as Xeno
 
@@ -50,6 +54,8 @@ data NxLog = NxLog
   , _ExecutionProcessId :: Maybe Int
   , _Hostname :: Maybe Text
   , _Keywords :: Maybe Text
+  , _LogonId :: Maybe Text
+  , _LogonType :: Maybe Text
   , _Message :: Maybe Text
   , _Opcode :: Maybe Text
   , _OpcodeValue :: Maybe Int
@@ -86,6 +92,8 @@ instance FromJSON NxLog where
     _ExecutionProcessId <- maybe m "ExecutionProcessID"
     _Hostname <- maybe m "Hostname"
     _Keywords <- maybe m "Keywords"
+    _LogonId <- maybe m "LogonID"
+    _LogonType <- maybe m "LogonType"
     _Message <- maybe m "Message"
     _Opcode <- maybe m "Opcode"
     _OpcodeValue <- maybe m "OpcodeValue"
@@ -132,3 +140,7 @@ testXmlParser b = case Xeno.parse (TE.encodeUtf8 b) of
   Left err -> error "bad xml lol"
   Right node -> nodeToEventXml node
 
+test :: IO ()
+test = do
+  x <- TIO.readFile "/home/chessai/development/allsight/lib/allsight-core/nxlog.json"
+  print $ _EventXml <$> decodeStrict @NxLog (TE.encodeUtf8 x)
