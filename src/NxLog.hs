@@ -77,8 +77,8 @@ eventTimeFormat = DatetimeFormat (Just '-') (Just ' ') (Just ':')
 
 instance FromJSON NxLog where
   parseJSON = withObject "NxLog" $ \m -> do
-    _AccountName <- maybe m "AccountName"
-    _AccountType <- maybe m "AccountType"
+    _AccountName <- maybe m "AccountName" <|> maybe m "Account Name"
+    _AccountType <- maybe m "AccountType" <|> maybe m "Account Type"
     _ActivityId <- maybe m "ActivityID"
     _Category <- maybe m "Category"
     _Channel <- maybe m "Channel"
