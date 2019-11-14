@@ -31,6 +31,8 @@ import Data.Aeson.Types
 import Data.HashMap.Strict (HashMap)
 import Data.Text
 import GHC.Generics
+import Net.IPv4 (IPv4)
+import Data.Word (Word16)
 import Prelude hiding (maybe)
 import qualified Chronos
 import qualified Data.HashMap.Strict as HM
@@ -53,6 +55,8 @@ data NxLog = NxLog
   , _EventXml :: Either Xeno.XenoException (HashMap Text Text)
   , _ExecutionProcessId :: Maybe Int
   , _Hostname :: Maybe Text
+  , _IpAddress :: Maybe IPv4
+  , _IpPort :: Maybe Word16
   , _Keywords :: Maybe Text
   , _LogonId :: Maybe Text
   , _LogonProcessName :: Maybe Text
@@ -92,6 +96,8 @@ instance FromJSON NxLog where
     _EventXml <- eventXml m
     _ExecutionProcessId <- maybe m "ExecutionProcessID"
     _Hostname <- maybe m "Hostname"
+    _IpAddress <- maybe m "IpAddress"
+    _IpPort <- maybe m "IpPort"
     _Keywords <- maybe m "Keywords"
     _LogonId <- maybe m "LogonID"
     _LogonProcessName <- maybe m "LogonProcessName"
