@@ -55,6 +55,7 @@ data NxLog = NxLog
   , _Hostname :: Maybe Text
   , _Keywords :: Maybe Text
   , _LogonId :: Maybe Text
+  , _LogonProcessName :: Maybe Text
   , _LogonType :: Maybe Text
   , _Message :: Maybe Text
   , _Opcode :: Maybe Text
@@ -93,6 +94,7 @@ instance FromJSON NxLog where
     _Hostname <- maybe m "Hostname"
     _Keywords <- maybe m "Keywords"
     _LogonId <- maybe m "LogonID"
+    _LogonProcessName <- maybe m "LogonProcessName"
     _LogonType <- maybe m "LogonType"
     _Message <- maybe m "Message"
     _Opcode <- maybe m "Opcode"
