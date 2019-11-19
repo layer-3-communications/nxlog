@@ -104,6 +104,7 @@ data NxLog = NxLog
     _EventType :: Text,
     _UserID :: Maybe Text,
     _ProcessName :: Maybe Text,
+    _LogonProcessName :: Maybe Text,
     _ExtensionId :: Maybe Text,
     _Param3 :: Maybe Text,
     _Param8 :: Maybe Text,
@@ -251,6 +252,7 @@ instance FromJSON NxLog where
     <*> v .:  "EventType"
     <*> maybe v "UserID"
     <*> maybe v "ProcessName"
+    <*> maybe v "LogonProcessName"
     <*> maybe v "ExtensionId"
     <*> maybe v "param3"
     <*> maybe v "param8"
