@@ -24,6 +24,7 @@ import Chronos (Datetime, DatetimeFormat(..))
 import Control.Applicative
 import Control.Monad (mzero)
 import Data.Aeson
+import Data.Maybe (mapMaybe)
 import Data.Aeson.Types
 import Data.Text (Text)
 import Data.Word (Word16)
@@ -31,6 +32,7 @@ import GHC.Generics (Generic)
 import Net.IPv4 (IPv4)
 import Prelude hiding (maybe)
 import qualified Chronos
+import qualified Data.Text as T
 
 -- | https://nxlog.co/documentation/nxlog-user-guide/im_msvistalog.html#im_msvistalog_fields
 data NxLog = NxLog
@@ -51,6 +53,8 @@ data NxLog = NxLog
     _TargetSid :: Maybe Text,
     _KeyType :: Maybe Text,
     _Param11 :: Maybe Text,
+    _TargetImage :: Maybe Text,
+    _StartModule :: Maybe Text,
     _AdditionalInfo :: Maybe Text,
     _Image :: Maybe Text,
     _ReadOperation :: Maybe Text,
@@ -96,7 +100,7 @@ data NxLog = NxLog
     _Param6 :: Maybe Text,
     _EventTime :: Datetime,
     _ErrorMsg :: Maybe Text,
-    _Hashes :: Maybe Text,
+    _Hashes :: [(Text,Text)],
     _KeyFilePath :: Maybe Text,
     _ProcessGuid :: Maybe Text,
     _PreviousTime :: Maybe Text,
@@ -199,6 +203,8 @@ instance FromJSON NxLog where
     <*> maybe v "TargetSid"
     <*> maybe v "KeyType"
     <*> maybe v "param11"
+    <*> maybe v "TargetImage"
+    <*> maybe v "StartModule"
     <*> maybe v "AdditionalInfo"
     <*> maybe v "Image"
     <*> maybe v "ReadOperation"
@@ -244,7 +250,7 @@ instance FromJSON NxLog where
     <*> maybe v "param6"
     <*> eventTime v
     <*> maybe v "ErrorMsg"
-    <*> maybe v "Hashes"
+    <*> parseHashes v
     <*> maybe v "KeyFilePath"
     <*> maybe v "ProcessGuid"
     <*> maybe v "PreviousTime"
@@ -342,6 +348,21 @@ eventTime o = do
   case (Chronos.decode_YmdHMS eventTimeFormat =<< etime) of
     Nothing -> fail "Failed to parse EventTime"
     Just dt -> pure dt
+
+hashes :: Text -> [(Text,Text)]
+hashes = mapMaybe singleHash . T.splitOn ","
+  where
+    singleHash :: Text -> Maybe (Text,Text)
+    singleHash t = case T.splitOn "=" t of
+      [hashtype,hashvalue] -> Just (hashtype,hashvalue)
+      _ -> Nothing
+
+parseHashes :: Object -> Parser [(Text,Text)]
+parseHashes o = do
+  mhashes <- maybe o "Hashes"
+  case mhashes of
+    Nothing -> pure []
+    Just t -> pure $ hashes t
 
 {-
 eventXml :: Object -> Parser (Either Xeno.XenoException (HashMap Text Text))
